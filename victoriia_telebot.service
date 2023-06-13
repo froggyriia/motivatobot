@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram Bot
+After=network.target
+
+[Service]
+User=victoriia
+Group=victoriia
+
+WorkingDirectory=/home/victoriia/motivatobot/
+Environment="PYTHONPATH=/home/iliyasone/motivatobot/"
+ExecStart=/home/victoriia/motivatobot/.venv/bin/python /home/victoriia/motivatobot/project_bot_hw.py
+
+[Install]
+WantedBy=multi-user.target
