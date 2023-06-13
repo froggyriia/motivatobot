@@ -135,10 +135,11 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: Message, state: FSMContext):
     """Обработчик для запуска бота:
-    1) Получаем расписание пользователя если оно есть, иначе — создаём.
+    1) Получаем расписание и список дз пользователя если оно есть, иначе — создаём.
     2) Отправляем привественное сообщение пользователю с клавиатурой
     """
     schedule = Schedule.get_or_create_schedule(message.from_id)
+    homework = Homework.get_or_create_homework(message.from_id)
     await message.answer(
         f'Hi, {message.from_user.username}! Welcome to Motivation and Study Bot!'
         '\nYou can set your schedule and homework here'
@@ -152,7 +153,7 @@ async def show_schedule(call: types.CallbackQuery, state: FSMContext):
     """callback для кнопки "посмотреть расписание":
      1) Выводится лист кнопок - список дней недели
      2) Устанавливается state для выбора дня недели для демонстрации расписания"""
-    await bot.send_message(call.from_user.id, 'Вот твое расписание: ', reply_markup=inlineKeyboardWeekSchedule)
+    await bot.send_message(call.from_user.id, 'Выбери день: ', reply_markup=inlineKeyboardWeekSchedule)
     await BotStates.choose_weekday_to_show_schedule.set()
 
 
@@ -176,11 +177,11 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
 
 
 @dp.callback_query_handler(text='show_homework', state='*')
-async def show_homework(callback_query: types.CallbackQuery, state: FSMContext):
+async def show_homework(call: types.CallbackQuery, state: FSMContext):
     """callback для кнопки "посмотреть дз" - выводится лист кнопок - список дней недели
     пока еще ничего нет"""
-    await bot.send_message(callback_query.from_user.id, 'Вот твое домашнее задание: ',
-                           reply_markup=inlineKeyboardWeekSchedule)
+    await bot.send_message(call.from_user.id, 'Выбери день: ', reply_markup=inlineKeyboardWeekSchedule)
+
     await BotStates.choose_weekday_to_show_homework.set()
 
 
@@ -189,6 +190,13 @@ async def _(call: types.CallbackQuery, callback_data: dict):
     """callback для кнопки дней недели (демонстрация домашнего задания)
     пока еще ничего нет"""
     weekday = callback_data.get("weekday")
+    homework: Homework = Homework.get(call.from_user.id)
+    day_homework = homework.get_for_day(weekday)
+    if day_homework is None:
+        await call.message.answer("Сначала добавь домашнее задание!")
+    else:
+        text = f"Вот твои задания на день:\n{day_homework}"
+        await call.message.answer(text)
     print(weekday, 'just showing hw')
 
 
