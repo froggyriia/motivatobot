@@ -32,6 +32,8 @@ class Day(Enum):
 class BotStates(StatesGroup):
     """Хранит все возможные стейты пользователя в Finite State Machine"""
     edit_schedule_for_weekday = State()
+    edit_homework_for_weekday = State()
+
 
     choose_weekday_to_edit_schedule = State()
     choose_weekday_to_show_schedule = State()
@@ -170,7 +172,7 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     schedule: Schedule = Schedule.get(call.from_user.id)
     day_schedule = schedule.get_for_day(weekday)
     if day_schedule is None:
-        await call.message.answer("Сначала добавь своё расписание")
+        await call.message.answer(f"Сначала добавь своё расписание на этот день'")
     else:
         text = f"Вот твое расписание на день:\n{day_schedule}"
         await call.message.answer(text)
@@ -211,9 +213,12 @@ async def edit_homework(callback_query: types.CallbackQuery, state: FSMContext):
 
 # callback для кнопки дней недели (изменение домашнего задания)
 @dp.callback_query_handler(weekday_cd.filter(), state=BotStates.choose_weekday_to_edit_homework)
-async def _(call: types.CallbackQuery, callback_data: dict):
+async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     weekday = callback_data.get("weekday")
-    print(weekday, 'ready to change the schedule hw')
+    await state.update_data(chosen_weekday=weekday)
+    await BotStates.edit_homework_for_weekday.set()
+    await call.message.answer('Введи свои задания списком. Вот так:\nclass 1: assignments 1\nclass 2: assignments 2\n... ')
+
 
 
 @dp.callback_query_handler(text='edit_schedule', state="*")
@@ -258,8 +263,27 @@ async def _(message: Message, state: FSMContext):
     schedule.set_for_day(weekday, subjects)
     print(schedule)
 
-    await message.answer(f'Твоё расписание\n: {schedule.schedule_by_days[weekday]}')
+    await message.answer(f'Твоё расписание\n: {schedule.get_for_day(weekday)}')
 
+@dp.message_handler(state=BotStates.edit_homework_for_weekday)
+async def _(message: Message, state: FSMContext):
+    """Метод, который получает сообщение от пользователя и запоминает его список придметов в словарь schedule.day_schedule
+    по ключу [weekday]
+    1) Получаем значение weekday из state
+    2) Получаем расписание пользователя через его id
+    3) Из сообщения пользователя получаем список предметов, которые затем добавляем в его расписание
+    4) Отправляем расписание на день пользователю"""
+    data = await state.get_data()
+    weekday = data['chosen_weekday']
+
+    homework = Homework.get(message.from_id)
+
+
+    assignments = message.text
+    homework.set_for_day(weekday, assignments)
+
+
+    await message.answer(f'Твоё расписание\n: {homework.get_for_day(weekday)}')
 
 # вот эта часть работает охуенно ее не трогать
 # callback для котиков
