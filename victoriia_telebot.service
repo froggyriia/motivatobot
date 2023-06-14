@@ -7,7 +7,7 @@ User=victoriia
 Group=victoriia
 
 WorkingDirectory=/home/victoriia/motivatobot/
-Environment="PYTHONPATH=/home/iliyasone/motivatobot/"
+Environment="PYTHONPATH=/home/victoriia/motivatobot/"
 ExecStart=/home/victoriia/motivatobot/.venv/bin/python /home/victoriia/motivatobot/project_bot_hw.py
 
 [Install]
