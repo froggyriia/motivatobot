@@ -3,10 +3,10 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
 
 show_schedule = InlineKeyboardButton('Посмотреть расписание🙊🗓', callback_data='show_schedule')
-show_homework = InlineKeyboardButton('Посмотреть домашнее задние 📖📚', callback_data='show_homework')
+show_homework = InlineKeyboardButton('Посмотреть домашнее задание 📖📚', callback_data='show_homework')
 edit_schedule = InlineKeyboardButton('Редактировать расписание ✏️🗓', callback_data='edit_schedule')
-edit_homework = InlineKeyboardButton('Редактировать домашнее задние ✏️📖', callback_data='edit_homework')
-show_a_cat_kb = InlineKeyboardButton('Получить дозу мотивации🌷🐱🌷', callback_data='show_a_cat')
+edit_homework = InlineKeyboardButton('Редактировать домашнее задание ✏️📖', callback_data='edit_homework')
+show_a_cat_kb = InlineKeyboardButton('Получить дозу мотивации 🐱🌷', callback_data='show_a_cat')
 
 inlineKeyboardGreeting = InlineKeyboardMarkup(row_width=1).add(show_schedule,
                                                                show_homework,
