@@ -162,6 +162,8 @@ async def start(message: Message, state: FSMContext):
     """Обработчик для запуска бота:
     1) Получаем расписание и список дз пользователя если оно есть, иначе — создаём.
     2) Отправляем привественное сообщение пользователю с клавиатурой
+    :param message: сообщение от пользователя
+    :param state: state пользователя
     """
     schedule = Schedule.get_or_create_schedule(message.from_id)
     homework = Homework.get_or_create_homework(message.from_id)
@@ -178,7 +180,9 @@ async def start(message: Message, state: FSMContext):
 async def show_schedule(call: types.CallbackQuery, state: FSMContext):
     """callback для кнопки "посмотреть расписание":
      1) Выводится лист кнопок - список дней недели
-     2) Устанавливается state для выбора дня недели для демонстрации расписания"""
+     2) Устанавливается state для выбора дня недели для демонстрации расписания
+     :param call: callback inline кнопки
+     :param state: state пользователя"""
     await bot.send_message(call.from_user.id, 'Выбери день: ', reply_markup=inlineKeyboardWeekSchedule)
     await BotStates.choose_weekday_to_show_schedule.set()
 
@@ -191,7 +195,10 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     2) Получаем расписание пользователя (оно точно существует см. start)
     3) Из расписания пользователя получаем расписание на день
     4) Проверяем не пустое ли расписание на день.
-    Если пустое - просим пользователя добавить расписание, иначе выводим расписание на день"""
+    Если пустое - просим пользователя добавить расписание, иначе выводим расписание на день
+    :param call: callback inline кнопки
+    :param callback_data: значение кнопки, полученное из weekday_cd.filter()
+    :param state: state пользователя"""
     weekday = callback_data.get("weekday")
     schedule: Schedule = Schedule.get(call.from_user.id)
     day_schedule = schedule.get_for_day(weekday)
@@ -206,7 +213,9 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
 async def show_homework(call: types.CallbackQuery, state: FSMContext):
     """callback для кнопки "посмотреть дз" - выводится лист кнопок - список дней недели
     1) Выводится лист кнопок - список дней недели
-    2) Устанавливается state для выбора дня недели для демонстрации расписания"""
+    2) Устанавливается state для выбора дня недели для демонстрации расписания
+    :param call: callback inline кнопки
+    :param state: state пользователя"""
     await bot.send_message(call.from_user.id, 'Выбери день: ', reply_markup=inlineKeyboardWeekSchedule)
 
     await BotStates.choose_weekday_to_show_homework.set()
@@ -219,7 +228,9 @@ async def _(call: types.CallbackQuery, callback_data: dict):
     2) Получаем задания пользователя (они точно существует см. start)
     3) Из заданий пользователя получаем задания на день
     4) Проверяем есть ли задания на день.
-    Если нет - просим пользователя добавить задания, иначе выводим задания на день"""
+    Если нет - просим пользователя добавить задания, иначе выводим задания на день
+    :param call: callback inline кнопки
+    :param callback_data: значение кнопки, полученное из weekday_cd.filter() """
     weekday = callback_data.get("weekday")
     homework: Homework = Homework.get(call.from_user.id)
     day_homework = homework.get_for_day(weekday)
@@ -231,12 +242,14 @@ async def _(call: types.CallbackQuery, callback_data: dict):
 
 
 @dp.callback_query_handler(text='edit_homework', state="*")
-async def edit_homework(callback_query: types.CallbackQuery, state: FSMContext):
+async def edit_homework(call: types.CallbackQuery, state: FSMContext):
     """callback для кнопки "редактировать домашнее задание"
      1) Просим пользователя выбрать день, для которого нужно изменить задания,
         и выводим клавиатуру - список дней недели
-    2) Устанавливается state для выбора дня, для которого нужно изменить задания"""
-    await bot.send_message(callback_query.from_user.id, 'Выбери день, для которго хочешь изменить домашнее задание: ',
+    2) Устанавливается state для выбора дня, для которого нужно изменить задания
+    :param call: callback inline кнопки
+    :param state: state пользователя"""
+    await bot.send_message(call.from_user.id, 'Выбери день, для которго хочешь изменить домашнее задание: ',
                            reply_markup=inlineKeyboardWeekSchedule)
     await BotStates.choose_weekday_to_edit_homework.set()
 
@@ -248,7 +261,10 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
         1) Получаем weekday - день недели, кнопка которого была активирована.
         2) Запоминаем значение weekday
         3) Установаливаем state для редактирования заданий на определенного дня недели
-        4) Просим пользователя ввести список предметов и заданий к ним"""
+        4) Просим пользователя ввести список предметов и заданий к ним
+        :param call: callback inline кнопки
+        :param callback_data: значение кнопки, полученное из weekday_cd.filter()
+        :param state: state пользователя"""
     weekday = callback_data.get("weekday")
     await state.update_data(chosen_weekday=weekday)
     await BotStates.edit_homework_for_weekday.set()
@@ -257,13 +273,15 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
 
 
 @dp.callback_query_handler(text='edit_schedule', state="*")
-async def edit_schedule(callback_query: types.CallbackQuery, state: FSMContext):
+async def edit_schedule(call: types.CallbackQuery, state: FSMContext):
     """callback для кнопки "редактировать расписание"
         1) Просим пользователя выбрать день, для которого нужно изменить расписание,
         и выводим клавиатуру - список дней недели
-        2) Устанавливается state для выбора дня, для которого нужно изменить расписание"""
+        2) Устанавливается state для выбора дня, для которого нужно изменить расписание
+        :param call: callback inline кнопки
+        :param state: state пользователя"""
     # await bot.answer_callback_query(callback_query.id, 'Callback Answered!')  # это всплывающее окно
-    await bot.send_message(callback_query.from_user.id, 'Выбери день, который хочешь изменить: ',
+    await bot.send_message(call.from_user.id, 'Выбери день, который хочешь изменить: ',
                            reply_markup=inlineKeyboardWeekSchedule)
     await BotStates.choose_weekday_to_edit_schedule.set()
 
@@ -274,7 +292,10 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     1) Получаем weekday - день недели, кнопка которого была активирована.
     2) Запоминаем значение weekday
     3) Установаливаем state для редактирования расписания определенного дня недели
-    4) Просим пользователя ввести список предметов"""
+    4) Просим пользователя ввести список предметов
+    :param call: callback inline кнопки
+    :param callback_data: значение кнопки, полученное из weekday_cd.filter()
+    :param state: state пользователя"""
     weekday = callback_data.get("weekday")
     await state.update_data(chosen_weekday=weekday)
     await BotStates.edit_schedule_for_weekday.set()
@@ -288,7 +309,9 @@ async def _(message: Message, state: FSMContext):
     1) Получаем значение weekday из state
     2) Получаем расписание пользователя через его id
     3) Из сообщения пользователя получаем список предметов, которые затем добавляем в его расписание
-    4) Отправляем расписание на день пользователю"""
+    4) Отправляем расписание на день пользователю
+    :param message: сообщение пользователя
+    :param state: state пользователя"""
     data = await state.get_data()
     weekday = data['chosen_weekday']
 
@@ -307,7 +330,9 @@ async def _(message: Message, state: FSMContext):
     1) Получаем значение weekday из state
     2) Получаем список заданий пользователя через его id
     3) Из сообщения пользователя получаем список предметов и заданий к ним, которые затем добавляем в его задания
-    4) Отправляем задания на день пользователю"""
+    4) Отправляем задания на день пользователю
+    :param message: сообщение пользователя
+    :param state: state пользователя"""
     data = await state.get_data()
     weekday = data['chosen_weekday']
 
@@ -322,22 +347,24 @@ async def _(message: Message, state: FSMContext):
 # вот эта часть работает охуенно ее не трогать
 # callback для котиков
 @dp.callback_query_handler(text='show_a_cat', state="*")
-async def show_a_cat(callback_query: types.CallbackQuery):
+async def show_a_cat(call: types.CallbackQuery):
     """Метод, который обрабатывает callback кнопки "Получить дозу мотивации"
-    1) Получает img (картинку) из метода get_cat()
-    2) Случайно выбирает одну из фраз из элементов списка captions
-    3) Проверяет, не является ли пустой img.
-        Если нет, то отправляет ее пользователю и выводит клавиатуру главного меню"""
+        1) Получает img (картинку) из метода get_cat()
+        2) Случайно выбирает одну из фраз из элементов списка captions
+        3) Проверяет, не является ли пустой img.
+    Если нет, то отправляет ее пользователю и выводит клавиатуру главного меню
+    :param call: callback inline кнопки"""
     img = get_cat()
     caption = choice(captions)
     if img:
-        await bot.send_photo(callback_query.from_user.id, img, caption=caption, reply_markup=inlineKeyboardGreeting)
+        await bot.send_photo(call.from_user.id, img, caption=caption, reply_markup=inlineKeyboardGreeting)
 
 
 def get_cat() -> InputFile:
     """Метод, который возращает картинку, полученную по API
     1) с помощью библиотеки requests получаем url
-    2) Записываем картинку в буффер в байтах"""
+    2) Записываем картинку в буффер в байтах
+    :return: img - картинка котика"""
     link = 'https://api.thecatapi.com/v1/images/search'
     answer: list[dict: str | int] = requests.get(link).json()
     url_s = []
