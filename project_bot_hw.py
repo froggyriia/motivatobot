@@ -204,7 +204,8 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     schedule: Schedule = Schedule.get(call.from_user.id)
     day_schedule = schedule.get_for_day(weekday)
     if day_schedule is None:
-        await call.message.answer(f"Сначала добавь своё расписание на этот день")
+        await call.message.answer(
+            f'Сначала добавь своё расписание на этот день,\nиспользуя кнопку "Редактировать расписание"')
     else:
         text = f"Вот твое расписание на день:\n{day_schedule}"
         await call.message.answer(text)
@@ -238,7 +239,8 @@ async def _(call: types.CallbackQuery, callback_data: dict):
     homework: Homework = Homework.get(call.from_user.id)
     day_homework = homework.get_for_day(weekday)
     if day_homework is None:
-        await call.message.answer("Сначала добавь домашнее задание!")
+        await call.message.answer(
+            'Сначала добавь домашнее задание, \nиспользуя кнопку "Редактировать домашнее задание"')
     else:
         text = f"Вот твои задания на день:\n{day_homework}"
         await call.message.answer(text)
@@ -332,6 +334,7 @@ async def _(message: Message, state: FSMContext):
     await message.answer(f'Твоё расписание:\n{schedule.get_for_day(weekday)}')
     await BotStates.choose_weekday_to_edit_schedule.set()
 
+
 @dp.message_handler(state=BotStates.edit_homework_for_weekday)
 async def _(message: Message, state: FSMContext):
     """Метод, который получает сообщение от пользователя и запоминает его список задний в словарь
@@ -352,6 +355,7 @@ async def _(message: Message, state: FSMContext):
 
     await message.answer(f'Твои задания:\n{homework.get_for_day(weekday)}')
     await BotStates.choose_weekday_to_edit_homework.set()
+
 
 # вот эта часть работает охуенно ее не трогать
 # callback для котиков
