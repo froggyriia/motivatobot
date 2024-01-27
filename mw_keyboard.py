@@ -7,13 +7,12 @@ show_homework = InlineKeyboardButton('Посмотреть домашнее за
 edit_schedule = InlineKeyboardButton('Редактировать расписание ✏️🗓', callback_data='edit_schedule')
 edit_homework = InlineKeyboardButton('Редактировать домашнее задание ✏️📖', callback_data='edit_homework')
 show_a_cat_kb = InlineKeyboardButton('Получить дозу мотивации 🐱🌷', callback_data='show_a_cat')
-add_to_someones_schedule = InlineKeyboardButton('Присоединиться к расписанию', callback_data='add_to_someones_schedule')
+# add_to_someones_schedule = InlineKeyboardButton('Присоединиться к расписанию', callback_data='add_to_someones_schedule')
 inlineKeyboardGreeting = InlineKeyboardMarkup(row_width=1).add(show_schedule,
                                                                show_homework,
                                                                edit_homework,
                                                                edit_schedule,
-                                                               show_a_cat_kb,
-                                                               add_to_someones_schedule)
+                                                               show_a_cat_kb)
 """Клавиатура-меню, чтобы `пользователь такой *тык* и его перекидывало на нужные штуки`"""
 
 weekday_cd = CallbackData("w_w", "weekday")
