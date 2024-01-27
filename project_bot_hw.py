@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 from random import choice
-from aiogram import Bot, Dispatcher, executor, types
+import aiogram
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
@@ -14,6 +14,7 @@ from mw_keyboard import inlineKeyboardGreeting, inlineKeyboardWeekSchedule, week
 
 import logging
 import requests
+
 
 from enum import Enum
 
@@ -42,6 +43,8 @@ class BotStates(StatesGroup):
 
     choose_weekday_to_edit_homework = State()
     choose_weekday_to_show_homework = State()
+
+    waiting_for_schedule_id = State()
 
 
 class Homework:
@@ -101,34 +104,51 @@ class Homework:
 class Schedule:
     """Класс для расписания (для отдельного пользователя), хранит все расписания по ключу (id пользователя)"""
     owner_id: int
-    schedule_by_days: dict[Day, str]
     """Расписание отдельного пользователя"""
-    __instances__: dict[int, Schedule] = {}
+    schedule_by_days: dict[Day, str]
     """Нужно для хранение расписаний пользователей"""
+    __instances__: dict[int, Schedule] = {}
+
+    # """Словарь, хранящий id расписания как ключ, id пользователя - значением
+    # Предназначен для привязки определенного расписания к пользователю"""
+    # schedule_to_user_dict: dict[int, int] = dict()
+    # """Словарь, id расписания - ключ, расписание (Schedule) - значение
+    # Предназначен для получения расписания по его id"""
+    # schedule_dict: dict[int, Schedule] = dict()
 
     def __init__(self, owner_id: int):
         self.schedule_by_days = dict()
         self.owner_id = owner_id
+        self.current_id = owner_id
 
     @staticmethod
-    def get_or_create_schedule(owner_id: int) -> Schedule:  # Singleton or FlyWeight
+    def get_or_create_schedule(current_id: int) -> Schedule:  # Singleton or FlyWeight
         """Создаёт либо выдаёт уже существующее расписание по ключу(id пользователя)
 
         :param owner_id: id пользователя
         :return: возвращает либо новое расписание, либо то, что уже существует
         """
-        if owner_id not in Schedule.__instances__:
-            Schedule.__instances__[owner_id] = Schedule(owner_id)
-        return Schedule.__instances__[owner_id]
+        if current_id not in Schedule.__instances__:
+            Schedule.__instances__[current_id] = Schedule(current_id)
+            # Schedule.schedule_to_user_dict[uuid4().int] = owner_id
+            # Schedule.schedule_dict[Schedule.user_to_schedule_dict[owner_id]] = Schedule(owner_id)
+
+        return Schedule.__instances__[current_id]
+
+    def set_current_schedule_id(self, schedule_id: int):
+        self.current_id = schedule_id
+
+    def get_current_schedule_id(self):
+        return self.current_id
 
     @staticmethod
-    def get(owner_id: int) -> Schedule | None:
+    def get(current_id: int) -> Schedule | None:
         """Выдаёт уже существующее расписание по ключу(id пользователя), либо возвращает None
 
-        :param owner_id: id пользователя
+        :param current_id: id пользователя
         :return: возвращает существующее расписание либо None
         """
-        return Schedule.__instances__.get(owner_id)
+        return Schedule.__instances__.get(current_id)
 
     def get_for_day(self, day: Day | str):
         """Возвращает расписание на день
@@ -153,8 +173,8 @@ class Schedule:
 
 
 # Инициализировать бота и задать диспетчера
-bot = Bot(token=MV_TOKEN)
-dp = Dispatcher(bot, storage=MemoryStorage())
+bot = aiogram.Bot(token=MV_TOKEN)
+dp = aiogram.Dispatcher(bot, storage=MemoryStorage())
 
 
 @dp.message_handler(commands=['start'], state="*")
@@ -167,6 +187,7 @@ async def start(message: Message, state: FSMContext):
     """
     schedule = Schedule.get_or_create_schedule(message.from_id)
     homework = Homework.get_or_create_homework(message.from_id)
+    schedule.set_current_schedule_id(message.from_user.id)
     await message.answer(
         f'Привет, {message.from_user.username}! Добро пожаловать в Motivation and Study Bot!'
         '\nЗдесь ты можешь устанвливать свое расписание'
@@ -177,7 +198,7 @@ async def start(message: Message, state: FSMContext):
 
 
 @dp.callback_query_handler(text='show_schedule', state="*")
-async def show_schedule(call: types.CallbackQuery, state: FSMContext):
+async def show_schedule(call: aiogram.types.CallbackQuery, state: FSMContext):
     """callback для кнопки "посмотреть расписание":
         1) Выводится лист кнопок - список дней недели
         2) Устанавливается state для выбора дня недели для демонстрации расписания
@@ -190,7 +211,7 @@ async def show_schedule(call: types.CallbackQuery, state: FSMContext):
 
 #
 @dp.callback_query_handler(weekday_cd.filter(), state=BotStates.choose_weekday_to_show_schedule)
-async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+async def _(call: aiogram.types.CallbackQuery, callback_data: dict, state: FSMContext):
     """callback для кнопки дней недели (для демонстрации расписания)
         1) Получаем значение weekday - день недели, кнопка которго была активирована
         2) Получаем расписание пользователя (оно точно существует см. start)
@@ -213,7 +234,7 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
 
 
 @dp.callback_query_handler(text='show_homework', state='*')
-async def show_homework(call: types.CallbackQuery, state: FSMContext):
+async def show_homework(call: aiogram.types.CallbackQuery, state: FSMContext):
     """callback для кнопки "посмотреть дз" - выводится лист кнопок - список дней недели
         1) Выводится лист кнопок - список дней недели
         2) Устанавливается state для выбора дня недели для демонстрации расписания
@@ -226,7 +247,7 @@ async def show_homework(call: types.CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(weekday_cd.filter(), state=BotStates.choose_weekday_to_show_homework)
-async def _(call: types.CallbackQuery, callback_data: dict):
+async def _(call: aiogram.types.CallbackQuery, callback_data: dict):
     """callback для кнопки дней недели (демонстрация домашнего задания)
         1) Получаем значение weekday - день недели, кнопка которго была активирована
         2) Получаем задания пользователя (они точно существует см. start)
@@ -248,7 +269,7 @@ async def _(call: types.CallbackQuery, callback_data: dict):
 
 
 @dp.callback_query_handler(text='edit_homework', state="*")
-async def edit_homework(call: types.CallbackQuery, state: FSMContext):
+async def edit_homework(call: aiogram.types.CallbackQuery, state: FSMContext):
     """callback для кнопки "редактировать домашнее задание"
         1) Просим пользователя выбрать день, для которого нужно изменить задания,
     и выводим клавиатуру - список дней недели
@@ -263,7 +284,7 @@ async def edit_homework(call: types.CallbackQuery, state: FSMContext):
 
 # callback для кнопки дней недели (изменение домашнего задания)
 @dp.callback_query_handler(weekday_cd.filter(), state=BotStates.choose_weekday_to_edit_homework)
-async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+async def _(call: aiogram.types.CallbackQuery, callback_data: dict, state: FSMContext):
     """callback для кнопки дней недели (изменение домашнего задания)
          1) Получаем weekday - день недели, кнопка которого была активирована.
          2) Запоминаем значение weekday
@@ -281,7 +302,7 @@ async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
 
 
 @dp.callback_query_handler(text='edit_schedule', state="*")
-async def edit_schedule(call: types.CallbackQuery, state: FSMContext):
+async def edit_schedule(call: aiogram.types.CallbackQuery, state: FSMContext):
     """callback для кнопки "редактировать расписание"
             1) Просим пользователя выбрать день, для которого нужно изменить расписание,
         и выводим клавиатуру - список дней недели
@@ -296,7 +317,7 @@ async def edit_schedule(call: types.CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(weekday_cd.filter(), state=BotStates.choose_weekday_to_edit_schedule)
-async def _(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+async def _(call: aiogram.types.CallbackQuery, callback_data: dict, state: FSMContext):
     """callback для кнопки дней недели (изменение расписания)
         1) Получаем weekday - день недели, кнопка которого была активирована.
         2) Запоминаем значение weekday
@@ -360,7 +381,7 @@ async def _(message: Message, state: FSMContext):
 # вот эта часть работает охуенно ее не трогать
 # callback для котиков
 @dp.callback_query_handler(text='show_a_cat', state="*")
-async def show_a_cat(call: types.CallbackQuery):
+async def show_a_cat(call: aiogram.types.CallbackQuery):
     """Метод, который обрабатывает callback кнопки "Получить дозу мотивации"
         1) Получает img (картинку) из метода get_cat()
         2) Случайно выбирает одну из фраз из элементов списка captions
@@ -394,4 +415,4 @@ def get_cat() -> InputFile:
 
 
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    aiogram.executor.start_polling(dp, skip_updates=True)
