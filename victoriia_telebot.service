@@ -3,12 +3,12 @@ Description=Telegram Bot
 After=network.target
 
 [Service]
-User=frog_user
-Group=frog_user
+User=riia
+Group=riia
 
-WorkingDirectory=/home/frog_user/motivatobot/
-Environment="PYTHONPATH=/home/frog_user/motivatobot/"
-ExecStart=/home/frog_user/motivatobot/.venv/bin/python /home/frog_user/motivatobot/project_bot_hw.py
+WorkingDirectory=/home/riia/motivatobot/
+Environment="PYTHONPATH=/home/riia/motivatobot/"
+ExecStart=/home/riia/motivatobot/.venv/bin/python /home/riia/motivatobot/project_bot_hw.py
 
 [Install]
 WantedBy=multi-user.target
